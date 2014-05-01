@@ -1,7 +1,6 @@
 module STLC where
 
-open import Relation.Binary.PropositionalEquality as PropEq
-  using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Data.List
 open import Data.Product
 open import Data.Sum
@@ -68,6 +67,7 @@ data Val {Γ : Env} : {t : Ty} -> Lam Γ t -> Set where
   vAbs : {ty₁ ty₂ : Ty} -> (l : Lam (ty₁ ∷ Γ) ty₂) -> Val (LAbs l)
   vTrue : Val LTrue
   vFalse : Val LFalse
+
 module CBV where
   data _β_ {Γ : Env} : {t : Ty} -> Lam Γ t -> Lam Γ t -> Set where
     app₁ : {ty₁ ty₂ : Ty} {t₁ t₂ : Lam Γ ty₁} {l : Lam Γ (TyArr ty₁ ty₂)} -> t₁ β t₂ -> LApp l t₁ β LApp l t₂
@@ -100,3 +100,46 @@ module CBN where
   progress (LApp .(LAbs l) l₁) | inj₁ (vAbs l) = inj₂ (subβ l l₁ , appλ)
   progress (LApp l l₁) | inj₂ (l' , lβ) = inj₂ (LApp l' l₁ , app lβ)
   progress (LAbs l) = inj₁ (vAbs l)
+
+module Denotation where
+
+  open import Data.Bool
+  open import Data.Unit
+
+  open CBV
+
+  ⟦_⟧ty : Ty -> Set
+  ⟦ TyBool ⟧ty = Bool
+  ⟦ TyArr t t₁ ⟧ty = ⟦ t ⟧ty → ⟦ t₁ ⟧ty
+
+  <[_]> : Env -> Set
+  <[ [] ]> = ⊤
+  <[ x ∷ γ ]> = ⟦ x ⟧ty × <[ γ ]>
+
+  ⟦_⟧v_ : {Γ : Env} {t : Ty} -> Var Γ t -> <[ Γ ]> -> ⟦ t ⟧ty
+  ⟦ zvar ⟧v (proj₁ , proj₂) = proj₁
+  ⟦ svar v ⟧v γ = ⟦ v ⟧v proj₂ γ
+
+  ⟦_⟧tm_ : {Γ : Env} {t : Ty} -> Lam Γ t -> <[ Γ ]> -> ⟦ t ⟧ty
+  ⟦ LVar x ⟧tm γ = ⟦ x ⟧v γ
+  ⟦ LTrue ⟧tm γ = true
+  ⟦ LFalse ⟧tm γ = false
+  ⟦ LApp l l₁ ⟧tm γ = (⟦ l ⟧tm γ) (⟦ l₁ ⟧tm γ)
+  ⟦ LAbs l ⟧tm γ = λ z → ⟦ l ⟧tm (z , γ) 
+-- I used auto for all of these...and it worked....that's HORRIFYING. Are the terms really just that forced by the types?
+
+-- of course, now I want to prove that the β reduction agrees with the denotational semantics. This might be a bit tougher. In fact, it might need functional extensionality.
+-- Needing functional extensionality is "okay" in a sense. It's not inconsistent, just not "in the spirit of things" if I understand correctly. 
+
+-- Okay so we've got the two easy cases here, but we need to do the case of substitution which isn't as obvious to me
+
+-- I think we need something like
+-- ⟦ l ⟧tm (v , γ) ≡ ⟦ subβ l v ⟧ γ
+
+  subResp : {Γ : Env} {t₁ t₂ : Ty} -> (l : Lam (t₁ ∷ Γ) t₂) -> (a : Lam Γ t₁) -> (γ : <[ Γ ]>) -> ⟦ l ⟧tm ( ⟦ a ⟧tm γ , γ) ≡ ⟦ subβ l a ⟧tm γ
+  subResp l a γ = {!!} -- this is going to be the scary part
+
+  semResp : {Γ : Env} (t : Ty) -> (l l' : Lam Γ t) -> l β l' -> (γ : <[ Γ ]>) -> ⟦ l ⟧tm γ ≡ ⟦ l' ⟧tm γ
+  semResp t .(LApp l t₁) .(LApp l t₂) (app₁ {ty₁} {.t} {t₁} {t₂} {l} p) γ = cong (λ x → (⟦ l ⟧tm γ) x) (semResp ty₁ t₁ t₂ p γ)
+  semResp t .(LApp l₁ v) .(LApp l₂ v) (app₂ {ty₁} {.t} {v} {l₁} {l₂} x p) γ = cong (λ f → f (⟦ v ⟧tm γ)) (semResp (TyArr ty₁ t) l₁ l₂ p γ)
+  semResp t .(LApp (LAbs l) v) .(subExp (consSub v LVar) l) (appλ {ty₁} {.t} {v} {l} x) γ = subResp l v γ --woohoo so subResp is exactly what we need
