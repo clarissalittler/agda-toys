@@ -68,21 +68,35 @@ data Val {Γ : Env} : {t : Ty} -> Lam Γ t -> Set where
   vAbs : {ty₁ ty₂ : Ty} -> (l : Lam (ty₁ ∷ Γ) ty₂) -> Val (LAbs l)
   vTrue : Val LTrue
   vFalse : Val LFalse
+module CBV where
+  data _β_ {Γ : Env} : {t : Ty} -> Lam Γ t -> Lam Γ t -> Set where
+    app₁ : {ty₁ ty₂ : Ty} {t₁ t₂ : Lam Γ ty₁} {l : Lam Γ (TyArr ty₁ ty₂)} -> t₁ β t₂ -> LApp l t₁ β LApp l t₂
+    app₂ : {ty₁ ty₂ : Ty} {v : Lam Γ ty₁} {l₁ l₂ : Lam Γ (TyArr ty₁ ty₂)} -> Val v -> l₁ β l₂ -> LApp l₁ v β LApp l₂ v
+    appλ : {ty₁ ty₂ : Ty} {v : Lam Γ ty₁} {l : Lam (ty₁ ∷ Γ) ty₂} -> Val v -> LApp (LAbs l) v β (subβ l v)
 
-data _β_ {Γ : Env} : {t : Ty} -> Lam Γ t -> Lam Γ t -> Set where
-  app₁ : {ty₁ ty₂ : Ty} {t₁ t₂ : Lam Γ ty₁} {l : Lam Γ (TyArr ty₁ ty₂)} -> t₁ β t₂ -> LApp l t₁ β LApp l t₂
-  app₂ : {ty₁ ty₂ : Ty} {v : Lam Γ ty₁} {l₁ l₂ : Lam Γ (TyArr ty₁ ty₂)} -> Val v -> l₁ β l₂ -> LApp l₁ v β LApp l₂ v
-  appλ : {ty₁ ty₂ : Ty} {v : Lam Γ ty₁} {l : Lam (ty₁ ∷ Γ) ty₂} -> Val v -> LApp (LAbs l) v β (subβ l v)
-
-progress : {t : Ty} -> (l : Lam [] t) -> Val l ⊎ Σ (Lam [] t) (λ l' -> l β l')
-progress (LVar ())
-progress LTrue = inj₁ vTrue
-progress LFalse = inj₁ vFalse
-progress (LApp l₁ l₂) with progress l₂
-progress (LApp l₁ l₂) | inj₁ x with progress l₁
-progress (LApp .(LAbs l) l₂) | inj₁ v2 | inj₁ (vAbs l) = inj₂ (subβ l l₂ , appλ v2)
-progress (LApp l₁ l₂) | inj₁ x | inj₂ (l₁' , l₁β) = inj₂ (LApp l₁' l₂ , app₂ x l₁β)
-progress (LApp l₁ l₂) | inj₂ (l₂' , l₂β) = inj₂ (LApp l₁ l₂' , app₁ l₂β)
-progress (LAbs l) = inj₁ (vAbs l)
+  progress : {t : Ty} -> (l : Lam [] t) -> Val l ⊎ Σ (Lam [] t) (λ l' -> l β l')
+  progress (LVar ())
+  progress LTrue = inj₁ vTrue
+  progress LFalse = inj₁ vFalse
+  progress (LApp l₁ l₂) with progress l₂
+  progress (LApp l₁ l₂) | inj₁ x with progress l₁
+  progress (LApp .(LAbs l) l₂) | inj₁ v2 | inj₁ (vAbs l) = inj₂ (subβ l l₂ , appλ v2)
+  progress (LApp l₁ l₂) | inj₁ x | inj₂ (l₁' , l₁β) = inj₂ (LApp l₁' l₂ , app₂ x l₁β)
+  progress (LApp l₁ l₂) | inj₂ (l₂' , l₂β) = inj₂ (LApp l₁ l₂' , app₁ l₂β)
+  progress (LAbs l) = inj₁ (vAbs l)
 
 -- whoah, that was so much easier than I remember it being. Admittedly, that's the strongly typed syntax at work but /still/
+
+module CBN where
+  data _β_ {Γ : Env} : {t : Ty} -> Lam Γ t -> Lam Γ t -> Set where
+    app : {ty₁ ty₂ : Ty} {l₁ l₂ : Lam Γ (TyArr ty₁ ty₂)} {x : Lam Γ ty₁} -> l₁ β l₂ -> LApp l₁ x β LApp l₂ x
+    appλ : {ty₁ ty₂ : Ty} {x : Lam Γ ty₁} {l : Lam (ty₁ ∷ Γ) ty₂} -> LApp (LAbs l) x β (subβ l x)
+
+  progress : {t : Ty} -> (l : Lam [] t) -> Val l ⊎ Σ (Lam [] t) (λ l' -> l β l')
+  progress (LVar ())
+  progress LTrue = inj₁ vTrue
+  progress LFalse = inj₁ vFalse
+  progress (LApp l l₁) with progress l
+  progress (LApp .(LAbs l) l₁) | inj₁ (vAbs l) = inj₂ (subβ l l₁ , appλ)
+  progress (LApp l l₁) | inj₂ (l' , lβ) = inj₂ (LApp l' l₁ , app lβ)
+  progress (LAbs l) = inj₁ (vAbs l)
