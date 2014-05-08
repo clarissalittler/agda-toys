@@ -49,6 +49,14 @@ module MyCo where
   ind C l r (inl x) = l x
   ind C l r (inr x) = r x
 
+  open import Data.Product
+  ex : {A B : Set} -> (A -> ⊥) × (B -> ⊥) -> A + B -> ⊥
+  ex (a⊥ , b⊥) (inl x) = a⊥ x
+  ex (a⊥ , b⊥) (inr x) = b⊥ x
+
+  ex2 : {A B : Set} -> (A + B -> ⊥) -> (A -> ⊥) × (B -> ⊥)
+  ex2 f = (λ a → f (inl a)) , (λ b → f (inr b))
+
 module MyBool where
 
   open MySum hiding (ind)
@@ -91,23 +99,29 @@ module MyBool where
 
 module MyIden where
   
+  open import Level
   data _≡_ {A : Set} : A -> A -> Set where
     refl : (a : A) -> a ≡ a
 
-  ind : {A : Set} -> (C : (x y : A) -> x ≡ y -> Set)
+  ind : {i : Level} {A : Set} -> (C : (x y : A) -> x ≡ y -> Set i)
                    -> ((a : A) -> C a a (refl a)) -> (x y : A) -> (p : x ≡ y) -> C x y p
   ind C rs .y y (refl .y) = rs y
 
-  ind* : {A : Set} {a : A} -> (C : (x : A) -> a ≡ x -> Set)
+  ind* : {i : Level} {A : Set} {a : A} -> (C : (x : A) -> a ≡ x -> Set i)
                    -> (C a (refl a)) -> (x : A) -> (p : a ≡ x) -> C x p
   ind* C r x (refl .x) = r
 
-  ind' :  {A : Set} -> (C : (x y : A) -> x ≡ y -> Set)
+  ind' :  {i : Level} {A : Set} -> (C : (x y : A) -> x ≡ y -> Set i)
                    -> ((a : A) -> C a a (refl a)) -> (x y : A) -> (p : x ≡ y) -> C x y p
   ind' C f x y p = ind* (C x) (f x) y p
 
 -- so what we have here is that we've got 
 
-  ind*' : {A : Set} {a : A} -> (C : (x : A) -> a ≡ x -> Set)
+  ind*' : {i : Level} {A : Set} {a : A} -> (C : (x : A) -> a ≡ x -> Set i)
                    -> (C a (refl a)) -> (x : A) -> (p : a ≡ x) -> C x p
-  ind*' {A} {a} C r x p = {!!}
+  ind*' {i} {A} {a} C r x p = {!!}
+           where D : (x y : A) -> (x ≡ y) -> Set (suc i)
+                 D x y p = (C₁ : (z : A) → x ≡ z → Set i) → C₁ x (refl x) → C₁ y p
+  -- okay I don't get this, even with using universes it doesn't entirely make sense
+  -- is this a place where cumulativity matters so that we can bump up the level of C?
+
