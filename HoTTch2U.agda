@@ -9,9 +9,15 @@ p ^-1 = ind≡ (λ x y p₁ → y ≡ x) refl _ _ p --left those arguments under
 ^-1-lemma : {A : Set} {x : A} -> (refl x) ^-1 ≡ (refl x)
 ^-1-lemma = refl (refl _)
 
+
+module CompInd where
+  _·_ : {A : Set} {x y z : A} -> (x ≡ y) -> y ≡ z -> x ≡ z
+  _·_ {A} {x} {y} {z} p = ind≡ (λ x₁ y₁ p₁ → y₁ ≡ z → x₁ ≡ z) (λ a z₁ → z₁) x y p
+
+
 infixr 10 _·_
-_·_ : {A : Set} {x y z : A} -> (x ≡ y) -> y ≡ z -> x ≡ z
-_·_ {A} {x} {y} {z} p = ind≡ (λ x₁ y₁ p₁ → y₁ ≡ z → x₁ ≡ z) (λ a z₁ → z₁) x y p
+_·_ : {A : Set} {x y z : A} -> x ≡ y -> y ≡ z -> x ≡ z
+_·_ {A} {.y} {y} (refl .y) q = q
 
 -- lemma 2.1.4
 
@@ -74,3 +80,20 @@ lemma-2-3-9 : {A : Set} {P : A -> Set} {x y z : A} -> (p : x ≡ y) -> (q : y �
              -> (transport P q (transport P p u)) ≡ (transport P (p · q) u)
 lemma-2-3-9 {A} {P} {.y} {y} (refl .y) q u = refl _
 
+_~_ : {A : Set} {P : A -> Set} -> (f g : (x : A) -> P x) -> Set
+f ~ g = (x : _) → f x ≡ g x
+
+-- lemma 2.4.3 natural transformation (ish?)
+
+natH : {A B : Set} {f g : A -> B} {x y : A} -> (H : f ~ g) 
+     -> (p : x ≡ y) -> ((H x) · (ap g p)) ≡ ((ap f p) · (H y))
+natH {A} {B} {f} {g} {.y} {y} H (refl .y) = aux (H y)
+  where aux : {S : Set} {a b : S} -> (p : a ≡ b) -> (p · (refl b)) ≡ p 
+        aux {S} {.b} {b} (refl .b) = refl (refl b)
+
+id : {A : Set} -> A -> A
+id x = x
+
+-- corollary 2.4.4, grr the type is deceptive at first
+exchange : {A : Set} {f : A -> A} {x : A} -> (H : f ~ id) -> (x : A) -> (H (f x)) ≡ (ap f (H x))
+exchange H x = {!!}
