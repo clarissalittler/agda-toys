@@ -38,3 +38,39 @@ _∙ₗ_ {A} {a} {b} {c} {.s} {s} p (refl .s) = refl _
 
 -- oh, wait, was too eager this is actually not how they wanted to define whiskering
 -- well let's see what happens?
+
+_⋆_ : {A : Set} {a b c : A} {p q : a ≡ b} {r s : b ≡ c} -> (α : p ≡ q) -> (β : r ≡ s) -> (p · r) ≡ (q · s)
+_⋆_ {A} {a} {b} {c} {p} {q} {r} {s} α β = α ∙ᵣ r · q ∙ₗ β
+
+-- TODO finish this section
+
+ap : {A B : Set} {x y : A} -> (f : A -> B) -> x ≡ y -> (f x) ≡ (f y)
+ap f (refl _) = refl _
+
+-- transport
+
+transport : {A : Set} {x y : A} -> (B : A -> Set) -> (p : x ≡ y) -> B x -> B y
+transport {A} {.y} {y} B (refl .y) bx = bx
+
+lift : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (x , u) ≡ (y , transport B p u)
+lift {A} {B} {.y} {y} u (refl .y) = refl _
+
+lift-prop : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (ap {Σ A B} pr₁ (lift u p)) ≡ p
+lift-prop {A} {B} {.y} {y} u (refl .y) = refl (refl y) -- so how does this work? because lift just returns refl, on refl, right?
+
+apd : {A : Set} {B : A -> Set} {x y : A} -> (f : (a : A) -> B a) 
+            -> (p : x ≡ y) -> (transport B p (f x)) ≡ (f y)
+apd {A} {B} {.y} {y} f (refl .y) = refl (f y)
+
+lemma-2-3-5 : {A B : Set} {x y : A} -> (p : x ≡ y) -> (b : B) -> (transport (λ _ -> B) p b) ≡ b
+lemma-2-3-5 {A} {B} {.y} {y} (refl .y) b = refl b
+
+lemma-2-3-8 : {A B : Set} {x y : A} -> (f : A -> B) -> (p : x ≡ y)
+            -> (apd f p) ≡ ((lemma-2-3-5 p (f x)) · (ap f p))
+lemma-2-3-8 {A} {B} {.y} {y} f (refl .y) = refl (refl (f y)) -- this is scary easy
+
+lemma-2-3-9 : {A : Set} {P : A -> Set} {x y z : A} -> (p : x ≡ y) -> (q : y ≡ z)
+             -> (u : P x) 
+             -> (transport P q (transport P p u)) ≡ (transport P (p · q) u)
+lemma-2-3-9 {A} {P} {.y} {y} (refl .y) q u = refl _
+
