@@ -47,40 +47,41 @@ ex (a⊥ , b⊥) (inr x) = b⊥ x
 
 ex2 : {A B : Set} -> (A + B -> ⊥) -> (A -> ⊥) × (B -> ⊥)
 ex2 f = (λ a → f (inl a)) , (λ b → f (inr b))
-
+{-
 data _≡_ {A : Set} : A -> A -> Set where
-  refl : (a : A) -> a ≡ a
+  refl : (a : A) -> a ≡ a -} -- use standard library equality
+
+open import Relation.Binary.PropositionalEquality
 
 ind≡ : {A : Set} -> (C : (x y : A) -> x ≡ y -> Set)
-                   -> ((a : A) -> C a a (refl a)) -> (x y : A) -> (p : x ≡ y) -> C x y p
-ind≡ C rs .y y (refl .y) = rs y
+                   -> ((a : A) -> C a a refl) -> (x y : A) -> (p : x ≡ y) -> C x y p
+ind≡ C rs .y y refl = rs y
 
 ind* : {A : Set} {a : A} -> (C : (x : A) -> a ≡ x -> Set)
-                   -> (C a (refl a)) -> (x : A) -> (p : a ≡ x) -> C x p
-ind* C r x (refl .x) = r
+                   -> (C a refl) -> (x : A) -> (p : a ≡ x) -> C x p
+ind* C r x refl = r
 
 ind' :  {A : Set} -> (C : (x y : A) -> x ≡ y -> Set)
-                   -> ((a : A) -> C a a (refl a)) -> (x y : A) -> (p : x ≡ y) -> C x y p
+                   -> ((a : A) -> C a a refl) -> (x y : A) -> (p : x ≡ y) -> C x y p
 ind' C f x y p = ind* (C x) (f x) y p
 
 -- so what we have here is that we've got 
 
 ind*' : {A : Set} {a : A} -> (C : (x : A) -> a ≡ x -> Set)
-                   -> (C a (refl a)) -> (x : A) -> (p : a ≡ x) -> C x p
+                   -> (C a refl) -> (x : A) -> (p : a ≡ x) -> C x p
 ind*' {A} {a} C r x p = f a x p C r
         where D : (x y : A) -> (x ≡ y) -> Set
-              D x y p = (C₁ : (z : A) → x ≡ z → Set) → C₁ x (refl x) → C₁ y p
+              D x y p = (C₁ : (z : A) → x ≡ z → Set) → C₁ x refl → C₁ y p
               f : (x y : A) -> (p : x ≡ y) -> D x y p
-              f .y y (refl .y) C₁ c = c
+              f .y y refl C₁ c = c
 
 _∘_ : {A B C : Set} -> (g : B -> C) -> (f : A -> B) -> A -> C
 g ∘ f = λ a -> g (f a) 
 
 ex11 : {A B C D : Set} {h : C -> D} {g : B -> C} {f : A -> B} ->
        (h ∘ (g ∘ f)) ≡ ((h ∘ g) ∘ f)
-ex11 = refl _ -- wait how did this work without functional extensionality?
+ex11 = refl -- wait how did this work without functional extensionality?
               -- ahh, they're both λ a -> (h (g (f a))) right, is that it? I was just surprised but I guess the fact that they're both the same under the λ is what makes it okay
-
 -- ex 1.2
 recΣ : {A C : Set} {B : A -> Set} -> ((a : A) -> (b : B a) -> C) -> Σ A B -> C
 recΣ f p = f (pr₁ p) (pr₂ p)
