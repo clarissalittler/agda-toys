@@ -2,13 +2,14 @@
 module HoTTch2U where
 
 open import HoTTch1U
+open import Relation.Binary.PropositionalEquality
+open ≡-Reasoning
 
 _^-1 : {A : Set} {x y : A} -> x ≡ y -> y ≡ x
-p ^-1 = ind≡ (λ x y p₁ → y ≡ x) refl _ _ p --left those arguments underscored because they're forced and it allows me to leave them implicit
+p ^-1 = ind≡ (λ x y p₁ → y ≡ x) (λ a → refl {x = a}) _ _ p --left those arguments underscored because they're forced and it allows me to leave them implicit
 
-^-1-lemma : {A : Set} {x : A} -> (refl x) ^-1 ≡ (refl x)
-^-1-lemma = refl (refl _)
-
+^-1-lemma : {A : Set} {x : A} -> refl {x = x} ^-1 ≡ refl {x = x}
+^-1-lemma = refl {x = refl}
 
 module CompInd where
   _·_ : {A : Set} {x y z : A} -> (x ≡ y) -> y ≡ z -> x ≡ z
@@ -17,30 +18,58 @@ module CompInd where
 
 infixr 10 _·_
 _·_ : {A : Set} {x y z : A} -> x ≡ y -> y ≡ z -> x ≡ z
-_·_ {A} {.y} {y} (refl .y) q = q
+_·_ refl q = q
+
+
+
+lassoc : {A : Set} {w x y z : A} -> (p : x ≡ y) -> (q : y ≡ z) -> (r : z ≡ w) ->
+       p · ( q · r) ≡ (p · q) · r
+lassoc refl q r = refl
+
+rassoc : {A : Set} {w x y z : A} -> (p : x ≡ y) -> (q : y ≡ z) -> (r : z ≡ w) ->
+       (p · q) · r ≡ p · ( q · r)
+rassoc p q r = sym (lassoc p q r)
+
+lid : {A : Set} {x y : A} {p : x ≡ y} -> (p · refl) ≡ p
+lid {A} {.y} {y} {refl} = refl
+
+rid : {A : Set} {x y : A} {p : x ≡ y} -> (refl · p) ≡ p
+rid {A} {.y} {y} {refl} = refl
+
+invinv : {A : Set} {x y : A} -> (p : x ≡ y) -> (p ^-1) ^-1 ≡ p
+invinv refl = refl
+
+linv : {A : Set} {x y : A} -> (p : x ≡ y) -> (p ^-1) · p ≡ refl
+linv refl = refl
+
+rinv : {A : Set} {x y : A} -> (p : x ≡ y) -> p · (p ^-1) ≡ refl
+rinv refl = refl
 
 -- lemma 2.1.4
 
-lemma-2-1-4-1 : {A : Set} {x y : A} {p : x ≡ y} -> (p ≡ (p · refl y)) × (p ≡ (refl x · p))
-lemma-2-1-4-1 {A} {.y} {y} {refl .y} = refl (refl y) , refl (refl y)
+lemma-2-1-4-1 : {A : Set} {x y : A} {p : x ≡ y} -> (p ≡ (p · refl)) × (p ≡ (refl · p))
+lemma-2-1-4-1 {A} {.y} {y} {refl} = refl { x = refl} , refl
 
 lemma-2-1-4-3 : {A : Set} {x y : A} {p : x ≡ y} -> (p ^-1) ^-1 ≡ p
-lemma-2-1-4-3 {A} {.y} {y} {refl .y} = refl (refl y)
+lemma-2-1-4-3 {A} {.y} {y} {refl} = refl {x = refl {x = y} }
+-- maybe it's silly I'm putting in all the implicity arguments but I'm trying to not be obtuse about what all the types are doing 
 
 Ω : (A : Set) -> A -> Set
 Ω A a = a ≡ a
 
 Ω² : (A : Set) -> A -> Set
-Ω² A a = (refl a) ≡ (refl a)
+Ω² A a = (refl {x = a}) ≡ refl
+
 
 --- Now for the Eckmann-Hilton argument 
 --- first define a general version of the ⋆ operation and whiskering
 _∙ᵣ_ : {A : Set} {a b c : A} {p q : a ≡ b} 
        -> (α : p ≡ q) -> (r : b ≡ c) -> (p · r) ≡ (q · r)
-_∙ᵣ_ {A} {a} {b} {c} {.q} {q} (refl .q) r = refl _
+_∙ᵣ_ refl r = refl
 
 _∙ₗ_ : {A : Set} {a b c : A} {r s : b ≡ c} -> (p : a ≡ b) -> (β : r ≡ s) -> (p · r) ≡ (p · s)
-_∙ₗ_ {A} {a} {b} {c} {.s} {s} p (refl .s) = refl _
+_∙ₗ_ p refl = refl
+
 
 -- oh, wait, was too eager this is actually not how they wanted to define whiskering
 -- well let's see what happens?
@@ -51,34 +80,40 @@ _⋆_ {A} {a} {b} {c} {p} {q} {r} {s} α β = α ∙ᵣ r · q ∙ₗ β
 -- TODO finish this section
 
 ap : {A B : Set} {x y : A} -> (f : A -> B) -> x ≡ y -> (f x) ≡ (f y)
-ap f (refl _) = refl _
+ap f refl = refl
+
+id : {A : Set} -> A -> A
+id x = x
+
+ap-id : {A : Set} {x y : A} -> (p : x ≡ y) -> ap id p ≡ p
+ap-id refl = refl
 
 -- transport
 
 transport : {A : Set} {x y : A} -> (B : A -> Set) -> (p : x ≡ y) -> B x -> B y
-transport {A} {.y} {y} B (refl .y) bx = bx
+transport {A} {.y} {y} B refl bx = bx
 
 lift : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (x , u) ≡ (y , transport B p u)
-lift {A} {B} {.y} {y} u (refl .y) = refl _
+lift {A} {B} {.y} {y} u refl = refl
 
 lift-prop : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (ap {Σ A B} pr₁ (lift u p)) ≡ p
-lift-prop {A} {B} {.y} {y} u (refl .y) = refl (refl y) -- so how does this work? because lift just returns refl, on refl, right?
+lift-prop {A} {B} {.y} {y} u refl = refl -- so how does this work? because lift just returns refl, on refl, right?
 
 apd : {A : Set} {B : A -> Set} {x y : A} -> (f : (a : A) -> B a) 
             -> (p : x ≡ y) -> (transport B p (f x)) ≡ (f y)
-apd {A} {B} {.y} {y} f (refl .y) = refl (f y)
+apd {A} {B} {.y} {y} f refl = refl
 
 lemma-2-3-5 : {A B : Set} {x y : A} -> (p : x ≡ y) -> (b : B) -> (transport (λ _ -> B) p b) ≡ b
-lemma-2-3-5 {A} {B} {.y} {y} (refl .y) b = refl b
+lemma-2-3-5 {A} {B} {.y} {y} refl b = refl
 
 lemma-2-3-8 : {A B : Set} {x y : A} -> (f : A -> B) -> (p : x ≡ y)
             -> (apd f p) ≡ ((lemma-2-3-5 p (f x)) · (ap f p))
-lemma-2-3-8 {A} {B} {.y} {y} f (refl .y) = refl (refl (f y)) -- this is scary easy
+lemma-2-3-8 {A} {B} {.y} {y} f refl = refl -- this is scary easy
 
 lemma-2-3-9 : {A : Set} {P : A -> Set} {x y z : A} -> (p : x ≡ y) -> (q : y ≡ z)
              -> (u : P x) 
              -> (transport P q (transport P p u)) ≡ (transport P (p · q) u)
-lemma-2-3-9 {A} {P} {.y} {y} (refl .y) q u = refl _
+lemma-2-3-9 {A} {P} {.y} {y} refl q u = refl
 
 _~_ : {A : Set} {P : A -> Set} -> (f g : (x : A) -> P x) -> Set
 f ~ g = (x : _) → f x ≡ g x
@@ -87,13 +122,34 @@ f ~ g = (x : _) → f x ≡ g x
 
 natH : {A B : Set} {f g : A -> B} {x y : A} -> (H : f ~ g) 
      -> (p : x ≡ y) -> ((H x) · (ap g p)) ≡ ((ap f p) · (H y))
-natH {A} {B} {f} {g} {.y} {y} H (refl .y) = aux (H y)
-  where aux : {S : Set} {a b : S} -> (p : a ≡ b) -> (p · (refl b)) ≡ p 
-        aux {S} {.b} {b} (refl .b) = refl (refl b)
-
-id : {A : Set} -> A -> A
-id x = x
+natH {A} {B} {f} {g} {.y} {y} H refl = aux (H y)
+  where aux : {S : Set} {a b : S} -> (p : a ≡ b) -> (p · refl) ≡ p 
+        aux {S} {.b} {b} refl = refl
 
 -- corollary 2.4.4, grr the type is deceptive at first
-exchange : {A : Set} {f : A -> A} {x : A} -> (H : f ~ id) -> (x : A) -> (H (f x)) ≡ (ap f (H x))
-exchange H x = {!!}
+exchange : {A : Set} (f : A -> A) -> (H : f ~ id) -> (x : A) -> (H (f x)) ≡ (ap f (H x))
+exchange f H x = sym aux₃ where
+  aux₁ : H (f x) · ap (λ z → z) (H x) ≡ ap (λ z → f z) (H x) · H x
+  aux₁ = natH H (H x)
+  
+  aux₂ : (ap f (H x)) · (H x) ≡ ((H (f x) · H x))
+  aux₂ = sym (transport (λ p → H (f x) · p ≡ ap (λ z → f z) (H x) · H x) (ap-id (H x)) aux₁)
+  -- uhh why did we do the symmetry? Oh, right, the book kinda did so wevs
+
+  aux₃ : ap f (H x) ≡ H (f x)
+  aux₃ = begin ap f (H x) 
+            ≡⟨ sym lid ⟩
+               ap f (H x) · refl
+            ≡⟨ cong (λ p → ap f (H x) · p) (sym (rinv (H x))) ⟩ 
+               ap f (H x) · H x · H x ^-1 
+            ≡⟨ lassoc (ap f (H x)) (H x) (ind≡ (λ x₁ y _ → y ≡ x₁) (λ a → refl) (f x) x (H x)) ⟩ 
+               (ap f (H x) · H x) · H x ^-1 
+            ≡⟨ cong (λ p → p · H x ^-1) aux₂ ⟩ 
+               (H (f x) · H x) · H x ^-1 
+            ≡⟨ rassoc (H (f x)) (H x) (ind≡ (λ x₁ y _ → y ≡ x₁) (λ a → refl) (f x) x (H x)) ⟩ 
+               H (f x) · H x · H x ^-1 
+            ≡⟨ cong (λ p → H (f x) · p) (rinv (H x)) ⟩ 
+               H (f x) · refl 
+            ≡⟨ lid ⟩ 
+               (H (f x) ∎)
+-- alright, we're finally done with this proof!
