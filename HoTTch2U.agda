@@ -162,4 +162,43 @@ qiId : {A : Set} -> quasi-inverse {A} {A} id
 qiId = id , (λ x → refl) , (λ x → refl)
 
 qiPath : {A : Set} {x y z : A} -> (p : x ≡ y) -> quasi-inverse ((λ (q : y ≡ z) -> p · q))
-qiPath refl = id , (λ x → refl) , (λ x → refl) -- this was so easy, it scares the crap out of me
+qiPath refl = id , (λ x → refl) , (λ x → refl) -- this was so easy, it scares the crap out of me, so let's try the harder way
+
+qiPath' : {A : Set} {x y z : A} -> (p : x ≡ y) -> quasi-inverse ((λ (q : y ≡ z) -> p · q))
+qiPath' {A} {x} {y} {z} p = (λ q → p ^-1 · q) , (aux₁ , aux₂) where
+   aux₁ : (r : x ≡ z) -> (p · (p ^-1 · r)) ≡ r
+   aux₁ r = begin p · p ^-1 · r 
+               ≡⟨ lassoc p (ind≡ (λ x₁ y₁ _ → y₁ ≡ x₁) (λ a → refl) x y p) r ⟩ 
+                  (p · p ^-1) · r 
+               ≡⟨ cong (λ s → s · r) (rinv p) ⟩ 
+                  refl · r 
+               ≡⟨ rid ⟩ 
+                  (r ∎)
+  
+   aux₂ : (r : y ≡ z) -> (p ^-1 · (p · r)) ≡ r
+   aux₂ r = begin p ^-1 · p · r 
+               ≡⟨ lassoc (ind≡ (λ x₁ y₁ _ → y₁ ≡ x₁) (λ a → refl) x y p) p r ⟩ 
+                  (p ^-1 · p) · r 
+               ≡⟨ cong (λ s → s · r) (linv p) ⟩ 
+                  refl · r 
+               ≡⟨ rid ⟩ 
+                 (r ∎)
+
+qiTransport : {A : Set} {B : A -> Set} {x y : A} -> (p : x ≡ y) -> quasi-inverse (transport B p)
+qiTransport {A} {B} {x} {y} p = transport B (p ^-1) , aux₁ , aux₂ where 
+-- we coooouuuulllllldddd just do path induction again but that seems like chorting
+   aux₁ : (b : B y) -> transport B p (transport B (p ^-1) b) ≡ b
+   aux₁ b = begin transport B p (transport B (p ^-1) b) 
+               ≡⟨ lemma-2-3-9 {A} {B} {y} {x} {_} (p ^-1) p b ⟩ 
+                  transport B (p ^-1 · p) b 
+               ≡⟨ cong (λ s → transport B s b) (linv p) ⟩ 
+                  transport B refl b 
+               ≡⟨ refl ⟩ 
+                  (b ∎)
+
+   aux₂ : (b : B x) -> transport B (p ^-1) (transport B p b) ≡ b
+   aux₂ b = begin transport B (p ^-1) (transport B p b) 
+               ≡⟨ lemma-2-3-9 {A} {B} {x} {y} {x} p (p ^-1) b ⟩ 
+                  transport B (p · p ^-1) b 
+               ≡⟨ cong (λ s → transport B s b) (rinv p) ⟩ 
+                  (b ∎)
