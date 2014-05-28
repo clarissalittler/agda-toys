@@ -202,3 +202,30 @@ qiTransport {A} {B} {x} {y} p = transport B (p ^-1) , aux₁ , aux₂ where
                   transport B (p · p ^-1) b 
                ≡⟨ cong (λ s → transport B s b) (rinv p) ⟩ 
                   (b ∎)
+
+isequiv : {A B : Set} -> (f : A -> B) -> Set
+isequiv {A} {B} f = (Σ (B → A) (λ g → (f ∘ g) ~ id)) × (Σ (B → A) (λ h → (h ∘ f) ~ id))
+
+_≅_ : (A B : Set) -> Set
+A ≅ B = Σ (A → B) isequiv -- woo!
+
+qiIsEquiv : {A B : Set} -> (f : A -> B) -> quasi-inverse f -> isequiv f
+qiIsEquiv f (g , p1 , p2) = (g , p1) , g , p2
+
+equivIsQi : {A B : Set} -> (f : A -> B) -> isequiv f -> quasi-inverse f
+equivIsQi f ((g , α) , h , β)= g , α , β' where
+  γ : g ~ h
+  γ x = begin g x 
+           ≡⟨ sym (β (g x)) ⟩
+              h (f (g x)) 
+           ≡⟨ cong h (α x) ⟩ 
+              (h x ∎) 
+
+
+  β' : (g ∘ f) ~ id
+  β' x = γ (f x) · β x
+
+eqInv : {A B : Set} -> A ≅ B -> B ≅ A
+eqInv (f , fequiv) with equivIsQi f fequiv 
+eqInv (f , fequiv) | g , p₁ , p₂ = g , (f , p₂) , f , p₁
+-- 
