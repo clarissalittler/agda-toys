@@ -1,8 +1,9 @@
 {-# OPTIONS --without-K --type-in-type #-}
 module HoTTch2U where
 
-open import HoTTch1U
+open import HoTTch1U hiding (Σ ; _×_ ; _,_ )
 open import Relation.Binary.PropositionalEquality
+open import Data.Product
 open ≡-Reasoning
 
 _^-1 : {A : Set} {x y : A} -> x ≡ y -> y ≡ x
@@ -96,7 +97,7 @@ transport {A} {.y} {y} B refl bx = bx
 lift : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (x , u) ≡ (y , transport B p u)
 lift {A} {B} {.y} {y} u refl = refl
 
-lift-prop : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (ap {Σ A B} pr₁ (lift u p)) ≡ p
+lift-prop : {A : Set} {B : A -> Set} {x y : A} -> (u : B x) -> (p : x ≡ y) -> (ap {Σ A B} proj₁ (lift u p)) ≡ p
 lift-prop {A} {B} {.y} {y} u refl = refl -- so how does this work? because lift just returns refl, on refl, right?
 
 apd : {A : Set} {B : A -> Set} {x y : A} -> (f : (a : A) -> B a) 
@@ -153,3 +154,12 @@ exchange f H x = sym aux₃ where
             ≡⟨ lid ⟩ 
                (H (f x) ∎)
 -- alright, we're finally done with this proof!
+
+quasi-inverse : {A B : Set} -> (f : A -> B) -> Set
+quasi-inverse {A} {B} f = Σ (B → A) (λ g → (f ∘ g) ~ id × (g ∘ f) ~ id)
+
+qiId : {A : Set} -> quasi-inverse {A} {A} id
+qiId = id , (λ x → refl) , (λ x → refl)
+
+qiPath : {A : Set} {x y z : A} -> (p : x ≡ y) -> quasi-inverse ((λ (q : y ≡ z) -> p · q))
+qiPath refl = id , (λ x → refl) , (λ x → refl) -- this was so easy, it scares the crap out of me
