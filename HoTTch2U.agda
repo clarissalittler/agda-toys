@@ -229,3 +229,40 @@ eqInv : {A B : Set} -> A ≅ B -> B ≅ A
 eqInv (f , fequiv) with equivIsQi f fequiv 
 eqInv (f , fequiv) | g , p₁ , p₂ = g , (f , p₂) , f , p₁
 -- 
+
+eqTrans : {A B C : Set} -> A ≅ B -> B ≅ C -> A ≅ C
+eqTrans (f , (hf , pf1) , (rf , pf2 )) (g , (hg , pg1) , (rg , pg2) ) = g ∘ f , (hf ∘ hg , α) , rf ∘ rg , β where
+   α : ((g ∘ f) ∘ (hf ∘ hg)) ~ id
+   α x = begin g (f (hf (hg x))) 
+            ≡⟨ cong g (pf1 (hg x)) ⟩ 
+               g (hg x) 
+            ≡⟨ pg1 x ⟩ 
+               (x ∎)
+  
+   β : ((rf ∘ rg) ∘ (g ∘ f)) ~ id
+   β x = begin rf (rg (g (f x))) 
+            ≡⟨ cong rf (pg2 (f x)) ⟩ 
+               rf (f x) 
+            ≡⟨ pf2 x ⟩ 
+               (x ∎)
+-- neato
+
+prodEq : {A B : Set} {x y : A × B} -> (x ≡ y) -> (proj₁ x ≡ proj₁ y) × (proj₂ x ≡ proj₂ y)
+prodEq p = cong proj₁ p , cong proj₂ p
+
+prodEq' : {A B : Set} -> (x y : A × B) -> (x ≡ y) -> (proj₁ x ≡ proj₁ y) × (proj₂ x ≡ proj₂ y)
+prodEq' .y y refl = refl , refl
+
+prodEqInv : {A B : Set} {x y : A × B} -> proj₁ x ≡ proj₁ y × proj₂ x ≡ proj₂ y → x ≡ y
+prodEqInv {A} {B} {.y₁ , .y₂} {y₁ , y₂} (refl , refl) = refl
+
+prodEquiv : {A B : Set} {x y : A × B} -> isequiv (prodEq {A} {B} {x} {y})
+prodEquiv {A} {B} {x} {y} = (prodEqInv , α) , prodEqInv , (β x y) where
+  α : {x y : A × B} -> (p₁ : (proj₁ x ≡ proj₁ y) × (proj₂ x ≡ proj₂ y)) -> prodEq (prodEqInv p₁) ≡ p₁
+  α {.y₁ , .y₂} {y₁ , y₂} (refl , refl) = refl
+  
+  β : (x y : A × B) -> (p : x ≡ y) -> prodEqInv (prodEq p) ≡ p -- making x,y implicit makes the deconstruction not work right
+  β .y₁ y₁ refl = refl
+
+pair= : {A B : Set} {x y : A × B} -> proj₁ x ≡ proj₁ y × proj₂ x ≡ proj₂ y → x ≡ y
+pair= = prodEqInv
