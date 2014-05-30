@@ -266,3 +266,4 @@ prodEquiv {A} {B} {x} {y} = (prodEqInv , α) , prodEqInv , (β x y) where
 
 pair= : {A B : Set} {x y : A × B} -> proj₁ x ≡ proj₁ y × proj₂ x ≡ proj₂ y → x ≡ y
 pair= = prodEqInv
+
